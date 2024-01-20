@@ -1,35 +1,106 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <link rel="icon" href="/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
-    <meta
-      name="description"
-      content="Web site created using @vitejs/plugin-react"
-    />
-    <link rel="apple-touch-icon" href="/logo192.png" />
-    <!--
-      manifest.json provides metadata used when your web app is installed on a
-      user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
-    -->
-    <link rel="manifest" href="/manifest.json" />
-    <title>React App</title>
-  </head>
-  <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
-    <div id="root"></div>
-    <!--
-      This HTML file is a template.
-      If you open it directly in the browser, you will see an empty page.
+<head>
+    <meta charset="UTF-8">
+    <title>Data Visualization</title>
 
-      You can add webfonts, meta tags, or analytics to this file.
-      The build step will place the bundled scripts into the <body> tag.
+    <link rel="stylesheet" href="https://pyscript.net/releases/2023.05.1/pyscript.css"/>
+    <script defer src="https://pyscript.net/releases/2023.05.1/pyscript.js"></script>
+    <script type="py">
+        import base64
+    </script>
 
-      To begin the development, run `npm start` or `yarn start`.
-      To create a production bundle, use `npm run build` or `yarn build`.
-    -->
-  </body>
-  <script type="module" src="/src/index.jsx"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #1c1c1c;
+            color: #fff;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        #content {
+            overflow: hidden;
+        }
+
+        #main {
+            max-height: 100%;
+            float: left;
+        }
+
+        #upload {
+            margin-top: 10px;
+        }
+
+        #dataTitle {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        #chartContainer {
+            max-width: 80%;
+        }
+
+        #chartContainer img {
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+   <py-config>
+      packages = ["pandas", "matplotlib"]
+    </py-config>
+
+    <div class="row overflow-hidden" id="content">
+        <div class="col mh-100 float-left" id="main">
+            <div id="dataTitle">Data Visualization</div>
+            <div id="fileinput"></div>
+            <input type="file" name="upload" id="upload">
+            <div id="chartContainer"></div>
+        </div>
+    </div>
+
+    <py-script>
+        from js import document
+        from io import BytesIO
+        import pandas as pd
+        import matplotlib.pyplot as plt
+
+        from pyscript import when
+
+        @when('change', '#upload')
+        async def processFile(*args):
+            csv_file = document.getElementById('upload').files.item(0)
+
+            array_buf = await csv_file.arrayBuffer() # Get arrayBuffer from file
+            file_bytes = array_buf.to_bytes() # convert to raw bytes array 
+            csv_file = BytesIO(file_bytes) # Wrap in Python BytesIO file-like object
+
+            # Read the CSV file into a Pandas DataFrame
+            df = pd.read_csv(csv_file, delimiter= ';')
+
+            # Plot the data
+            plt.style.use('dark_background')
+            plt.plot(df.iloc[:, 0], df.iloc[:, 1])
+            plt.title('График данных')
+            plt.xlabel('X-ось')
+            plt.ylabel('Y-ось')
+
+            # Save the plot as an image
+            img = BytesIO()
+            plt.savefig(img, format='png')
+            img.seek(0)
+            img_base64 = base64.b64encode(img.read()).decode('utf-8')
+            plt.close()
+
+            # Display the image in the chartContainer
+            document.getElementById('chartContainer').innerHTML = f'<img src="data:image/png;base64,{img_base64}" alt="График данных">'
+    </py-script>
+
+</body>
 </html>
